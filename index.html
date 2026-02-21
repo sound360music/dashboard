@@ -8,22 +8,33 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     
     html, body {
       width: 100%;
       height: 100%;
-      overflow: hidden; /* HTML 자체의 바깥 스크롤 방지 */
+      overflow: hidden; /* 브라우저 겉면 스크롤 방지 */
+      background-color: #f0f0f0;
+    }
+    
+    #iframe-wrapper {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
     }
     
     #dashboard-frame {
       border: 0;
       display: block;
-      /* 스크립트가 로드되기 전 기본값 */
-      width: 100vw;
-      height: 100vh; 
+      transform-origin: top left; /* 왼쪽 위를 기준으로 확대/축소 */
     }
 
+    /* 플로팅 검색 버튼 스타일 */
     .fab-btn {
       position: fixed;
       bottom: 30px;
@@ -54,25 +65,44 @@
 </head>
 <body>
   
-  <iframe id="dashboard-frame" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vReFgynBhkxg0gE6ECmMIwXeeb4AQJ-DqhDCpnDWYVIvAkeOSx2VBQgCoJQ0uUEJqGmEgok1SlPwRuK/pubhtml?widget=true&headers=false&chrome=false"></iframe>
+  <div id="iframe-wrapper">
+    <iframe id="dashboard-frame" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vReFgynBhkxg0gE6ECmMIwXeeb4AQJ-DqhDCpnDWYVIvAkeOSx2VBQgCoJQ0uUEJqGmEgok1SlPwRuK/pubhtml?widget=true&headers=false&chrome=false"></iframe>
+  </div>
 
   <div class="fab-btn" onclick="openSearchPortal()" title="통합 검색 열기">
     <i class="material-icons">search</i>
   </div>
 
   <script>
-    // 브라우저 크기에 맞춰 iframe 크기를 동적으로 세팅하는 스크립트
-    function resizeIframe() {
+    // 🔥 [가장 중요한 설정값] 🔥
+    // 현재 구글 시트에 데이터가 입력된 표의 실제 가로 픽셀 크기입니다.
+    // - 시트 오른쪽이 잘린다면 이 숫자를 늘리세요 (예: 1200, 1300)
+    // - 시트 오른쪽에 회색 빈 공간이 남고 글씨가 너무 작다면 이 숫자를 줄이세요 (예: 900, 800)
+    const SHEET_ACTUAL_WIDTH = 1000; 
+
+    function fitIframeToBrowser() {
       const iframe = document.getElementById('dashboard-frame');
-      iframe.style.width = window.innerWidth + 'px';
-      iframe.style.height = window.innerHeight + 'px';
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+
+      // 1. iframe 자체의 가로 넓이를 시트의 실제 넓이로 고정합니다. (내부 스크롤 생성 방지)
+      iframe.style.width = SHEET_ACTUAL_WIDTH + 'px';
+
+      // 2. 현재 내 브라우저 창 넓이와 시트 넓이의 비율을 계산합니다.
+      const scaleRatio = windowWidth / SHEET_ACTUAL_WIDTH;
+
+      // 3. 계산된 비율만큼 iframe을 줌인/줌아웃 시킵니다.
+      iframe.style.transform = `scale(${scaleRatio})`;
+
+      // 4. 화면이 축소/확대되면서 밑단이 비어버리는 것을 막기 위해 세로 길이를 역산해서 늘려줍니다.
+      iframe.style.height = (windowHeight / scaleRatio) + 'px';
     }
 
-    // 창 크기가 변할 때마다 즉시 재계산
-    window.addEventListener('resize', resizeIframe);
+    // 창 크기를 조절할 때마다 실시간으로 핏을 다시 맞춥니다.
+    window.addEventListener('resize', fitIframeToBrowser);
     
-    // 초기 로드 시 1회 실행
-    resizeIframe();
+    // 페이지가 처음 열릴 때 즉시 실행
+    fitIframeToBrowser();
 
     function openSearchPortal() {
       const scriptUrl = "https://script.google.com/a/macros/audioguyrecords.com/s/AKfycbyBVrgIAtTDZJIz6ikyLEgIdFG0LFY5JLtyABnxVPwtwCf0exbJW4uk7TrqJB6Ocp4d/exec";
@@ -80,12 +110,7 @@
       const height = 800;
       const left = (window.screen.width / 2) - (width / 2);
       const top = (window.screen.height / 2) - (height / 2);
-      
-      window.open(
-        scriptUrl, 
-        "MusicSearchPortal", 
-        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
-      );
+      window.open(scriptUrl, "MusicSearchPortal", `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
     }
   </script>
 </body>
