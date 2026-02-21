@@ -17,7 +17,7 @@
     html, body {
       width: 100%;
       height: 100%;
-      overflow: hidden; /* 브라우저 겉면 스크롤 방지 */
+      overflow: hidden; 
       background-color: #f0f0f0;
     }
     
@@ -31,10 +31,11 @@
     #dashboard-frame {
       border: 0;
       display: block;
-      transform-origin: top left; /* 왼쪽 위를 기준으로 확대/축소 */
+      transform-origin: top left;
+      will-change: transform; /* GPU 하드웨어 가속 힌트 제공 */
     }
 
-    /* 플로팅 검색 버튼 스타일 */
+    /* 플로팅 검색 버튼: button 태그에 맞게 초기화 속성 추가 */
     .fab-btn {
       position: fixed;
       bottom: 30px;
@@ -43,6 +44,8 @@
       height: 60px;
       background-color: #007bff;
       color: white;
+      border: none;
+      outline: none;
       border-radius: 50%;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       display: flex;
@@ -50,7 +53,7 @@
       justify-content: center;
       cursor: pointer;
       z-index: 1000;
-      transition: transform 0.2s, background-color 0.2s;
+      transition: transform 0.2s ease, background-color 0.2s ease;
     }
 
     .fab-btn:hover {
@@ -69,47 +72,51 @@
     <iframe id="dashboard-frame" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vReFgynBhkxg0gE6ECmMIwXeeb4AQJ-DqhDCpnDWYVIvAkeOSx2VBQgCoJQ0uUEJqGmEgok1SlPwRuK/pubhtml?widget=true&headers=false&chrome=false"></iframe>
   </div>
 
-  <div class="fab-btn" onclick="openSearchPortal()" title="통합 검색 열기">
+  <!-- div 대신 button 태그 사용 및 접근성 향상 -->
+  <button class="fab-btn" onclick="openSearchPortal()" title="통합 검색 열기" aria-label="통합 검색 열기">
     <i class="material-icons">search</i>
-  </div>
+  </button>
 
   <script>
-    // 🔥 [가장 중요한 설정값] 🔥
-    // 현재 구글 시트에 데이터가 입력된 표의 실제 가로 픽셀 크기입니다.
-    // - 시트 오른쪽이 잘린다면 이 숫자를 늘리세요 (예: 1200, 1300)
-    // - 시트 오른쪽에 회색 빈 공간이 남고 글씨가 너무 작다면 이 숫자를 줄이세요 (예: 900, 800)
     const SHEET_ACTUAL_WIDTH = 2000; 
+    
+    // DOM 요소를 한 번만 찾아 메모리에 캐싱 (불필요한 반복 탐색 방지)
+    const iframe = document.getElementById('dashboard-frame');
+    let ticking = false; // 리사이즈 이벤트 쓰로틀링을 위한 플래그
 
     function fitIframeToBrowser() {
-      const iframe = document.getElementById('dashboard-frame');
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
-
-      // 1. iframe 자체의 가로 넓이를 시트의 실제 넓이로 고정합니다. (내부 스크롤 생성 방지)
-      iframe.style.width = SHEET_ACTUAL_WIDTH + 'px';
-
-      // 2. 현재 내 브라우저 창 넓이와 시트 넓이의 비율을 계산합니다.
       const scaleRatio = windowWidth / SHEET_ACTUAL_WIDTH;
 
-      // 3. 계산된 비율만큼 iframe을 줌인/줌아웃 시킵니다.
-      iframe.style.transform = `scale(${scaleRatio})`;
-
-      // 4. 화면이 축소/확대되면서 밑단이 비어버리는 것을 막기 위해 세로 길이를 역산해서 늘려줍니다.
+      iframe.style.width = SHEET_ACTUAL_WIDTH + 'px';
       iframe.style.height = (windowHeight / scaleRatio) + 'px';
+      iframe.style.transform = `scale(${scaleRatio})`;
     }
 
-    // 창 크기를 조절할 때마다 실시간으로 핏을 다시 맞춥니다.
-    window.addEventListener('resize', fitIframeToBrowser);
+    // requestAnimationFrame을 활용해 부드럽고 성능 저하 없는 리사이즈 구현
+    window.addEventListener('resize', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          fitIframeToBrowser();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    });
     
-    // 페이지가 처음 열릴 때 즉시 실행
+    // 초기 로드 시 1회 실행
     fitIframeToBrowser();
 
     function openSearchPortal() {
       const scriptUrl = "https://script.google.com/a/macros/audioguyrecords.com/s/AKfycbyBVrgIAtTDZJIz6ikyLEgIdFG0LFY5JLtyABnxVPwtwCf0exbJW4uk7TrqJB6Ocp4d/exec";
+      
       const width = 1000;
       const height = 800;
+      // 화면 정중앙에 팝업 띄우기 (듀얼 모니터 환경도 고려된 기본 로직)
       const left = (window.screen.width / 2) - (width / 2);
       const top = (window.screen.height / 2) - (height / 2);
+      
       window.open(scriptUrl, "MusicSearchPortal", `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
     }
   </script>
