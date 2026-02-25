@@ -19,28 +19,27 @@
       font-family: 'Google Sans Code', monospace;
     }
 
-    /* 레이아웃 컨테이너 */
     #iframe-wrapper { 
       width: 100%; height: 100%; overflow: hidden; position: relative; 
-      display: flex; justify-content: center; align-items: flex-start;
+      /* 하위 요소 정렬을 위한 설정 */
+      display: block; 
     }
 
     #dashboard-frame { 
       border: 0; display: block; 
-      transform-origin: top center; /* 중앙 정렬을 위해 top center로 설정 */
       will-change: transform; 
-      /* 모드 전환 시 부드러운 애니메이션 효과 */
       transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      position: absolute;
+      top: 0;
+      left: 0;
     }
 
-    /* 상단 컨트롤 영역 (타이머 + 모드 전환 버튼) */
     .top-controls {
       position: fixed; top: 15px; right: 15px;
       display: flex; align-items: center; gap: 10px;
       z-index: 1001;
     }
 
-    /* 공통 유리창(Glassmorphism) 스타일 */
     .glass-panel {
       padding: 6px 14px;
       background-color: rgba(0, 0, 0, 0.3);
@@ -50,16 +49,13 @@
       font-size: 13px;
     }
 
-    /* 모드 전환 버튼 스타일 */
     #mode-toggle-btn {
       cursor: pointer; border: none; outline: none;
       transition: background-color 0.2s ease, transform 0.2s ease;
       pointer-events: auto;
     }
     #mode-toggle-btn:hover { background-color: rgba(0, 0, 0, 0.5); transform: translateY(-1px); }
-    #mode-toggle-btn:active { transform: translateY(0); }
 
-    /* 플로팅 검색 버튼 */
     .fab-btn {
       position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
       background-color: rgba(0, 123, 255, 0.4); color: white; border: none; 
@@ -76,13 +72,11 @@
 <body>
   
   <div class="top-controls">
-    <!-- 보기 모드 전환 버튼 -->
     <button id="mode-toggle-btn" class="glass-panel" onclick="toggleViewMode()" title="보기 모드 전환">
       <i id="mode-icon" class="material-icons" style="font-size: 16px;">height</i>
       <span id="mode-text">Fit Height</span>
     </button>
 
-    <!-- 리프레시 타이머 -->
     <div id="refresh-timer" class="glass-panel">
       <i class="material-icons" style="font-size: 16px;">update</i>
       <span style="white-space: nowrap; font-weight: 400;">Refresh:</span>
@@ -100,7 +94,8 @@
 
   <script>
     const SHEET_ACTUAL_WIDTH = 2000; 
-    const SHEET_ACTUAL_HEIGHT = 1200; // 높이 맞춤 기준값 (필요 시 수정)
+    // 높이값을 1200에서 1600으로 상향 조정 (스크롤 없이 더 많이 보이도록)
+    const SHEET_ACTUAL_HEIGHT = 1600; 
     const REFRESH_INTERVAL = 600000; 
     
     const iframe = document.getElementById('dashboard-frame');
@@ -108,11 +103,10 @@
     const modeIcon = document.getElementById('mode-icon');
     const modeText = document.getElementById('mode-text');
     
-    let viewMode = 'width'; // 'width' 또는 'height'
+    let viewMode = 'width'; 
     let timeLeft = (REFRESH_INTERVAL / 1000) - 1; 
     let ticking = false;
 
-    // 1. 화면 비율 계산 및 적용 (중앙 정렬 포함)
     function applyScaling() {
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
@@ -120,18 +114,28 @@
 
       if (viewMode === 'width') {
         scaleRatio = windowWidth / SHEET_ACTUAL_WIDTH;
-        iframe.style.transformOrigin = 'top left'; // 폭 맞춤일 때는 왼쪽 정렬
+        // 폭 맞춤일 때는 왼쪽 정렬 고정
+        iframe.style.transformOrigin = 'top left'; 
+        iframe.style.left = '0';
       } else {
         scaleRatio = windowHeight / SHEET_ACTUAL_HEIGHT;
-        iframe.style.transformOrigin = 'top center'; // 높이 맞춤일 때는 중앙 정렬
+        // 높이 맞춤일 때만 중앙 정렬
+        iframe.style.transformOrigin = 'top center'; 
+        iframe.style.left = '50%';
+        iframe.style.transform = `translateX(-50%) scale(${scaleRatio})`;
       }
 
       iframe.style.width = SHEET_ACTUAL_WIDTH + 'px';
+      // 전체 높이를 강제로 확보하여 내부 스크롤 발생 억제
       iframe.style.height = (windowHeight / scaleRatio) + 'px';
-      iframe.style.transform = `scale(${scaleRatio})`;
+      
+      if (viewMode === 'width') {
+        iframe.style.transform = `scale(${scaleRatio})`;
+      } else {
+        iframe.style.transform = `translateX(-50%) scale(${scaleRatio})`;
+      }
     }
 
-    // 2. 보기 모드 전환 함수
     function toggleViewMode() {
       if (viewMode === 'width') {
         viewMode = 'height';
@@ -145,7 +149,6 @@
       applyScaling();
     }
 
-    // 3. iframe 데이터 갱신
     function refreshIframeOnly() {
       const url = new URL(iframe.src);
       url.searchParams.set('t', new Date().getTime());
@@ -153,7 +156,6 @@
       timeLeft = (REFRESH_INTERVAL / 1000) - 1; 
     }
 
-    // 타이머 및 리사이즈 로직
     function updateTimer() {
       if (timeLeft < 0) refreshIframeOnly();
       const minutes = Math.floor(timeLeft / 60);
