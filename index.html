@@ -21,17 +21,17 @@
 
     #iframe-wrapper { 
       width: 100%; height: 100%; overflow: hidden; position: relative; 
-      /* 하위 요소 정렬을 위한 설정 */
-      display: block; 
     }
 
     #dashboard-frame { 
       border: 0; display: block; 
-      will-change: transform; 
-      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
       position: absolute;
       top: 0;
       left: 0;
+      /* 애니메이션 최적화: transform만 사용하여 GPU 가속 유도 */
+      transform-origin: 0 0;
+      transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+      will-change: transform; 
     }
 
     .top-controls {
@@ -94,8 +94,8 @@
 
   <script>
     const SHEET_ACTUAL_WIDTH = 2000; 
-    // 높이값을 1200에서 1600으로 상향 조정 (스크롤 없이 더 많이 보이도록)
-    const SHEET_ACTUAL_HEIGHT = 1600; 
+    // 높이값을 1350으로 정밀 조정 (아까보다 살짝 더 높은 수준)
+    const SHEET_ACTUAL_HEIGHT = 1350; 
     const REFRESH_INTERVAL = 600000; 
     
     const iframe = document.getElementById('dashboard-frame');
@@ -111,41 +111,28 @@
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
       let scaleRatio;
+      let translateX = 0;
 
       if (viewMode === 'width') {
         scaleRatio = windowWidth / SHEET_ACTUAL_WIDTH;
-        // 폭 맞춤일 때는 왼쪽 정렬 고정
-        iframe.style.transformOrigin = 'top left'; 
-        iframe.style.left = '0';
+        translateX = 0;
       } else {
         scaleRatio = windowHeight / SHEET_ACTUAL_HEIGHT;
-        // 높이 맞춤일 때만 중앙 정렬
-        iframe.style.transformOrigin = 'top center'; 
-        iframe.style.left = '50%';
-        iframe.style.transform = `translateX(-50%) scale(${scaleRatio})`;
+        // 중앙 정렬을 위한 이동값 계산 (폭 차이의 절반)
+        translateX = (windowWidth - (SHEET_ACTUAL_WIDTH * scaleRatio)) / 2;
       }
 
       iframe.style.width = SHEET_ACTUAL_WIDTH + 'px';
-      // 전체 높이를 강제로 확보하여 내부 스크롤 발생 억제
       iframe.style.height = (windowHeight / scaleRatio) + 'px';
       
-      if (viewMode === 'width') {
-        iframe.style.transform = `scale(${scaleRatio})`;
-      } else {
-        iframe.style.transform = `translateX(-50%) scale(${scaleRatio})`;
-      }
+      // 모든 이동과 크기 조절을 하나의 transform 속성으로 통합하여 애니메이션 최적화
+      iframe.style.transform = `translate3d(${translateX}px, 0, 0) scale(${scaleRatio})`;
     }
 
     function toggleViewMode() {
-      if (viewMode === 'width') {
-        viewMode = 'height';
-        modeIcon.innerText = 'width_full';
-        modeText.innerText = 'Fit Width';
-      } else {
-        viewMode = 'width';
-        modeIcon.innerText = 'height';
-        modeText.innerText = 'Fit Height';
-      }
+      viewMode = (viewMode === 'width') ? 'height' : 'width';
+      modeIcon.innerText = (viewMode === 'width') ? 'height' : 'width_full';
+      modeText.innerText = (viewMode === 'width') ? 'Fit Height' : 'Fit Width';
       applyScaling();
     }
 
