@@ -6,7 +6,6 @@
   <title>SOUND360 Global Catalog Dashboard</title>
   
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <!-- Google Sans Code 폰트 로드 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@300..800&display=swap" rel="stylesheet">
@@ -15,51 +14,45 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
     html, body { 
-      width: 100%; 
-      height: 100%; 
-      overflow: hidden; 
+      width: 100%; height: 100%; overflow: hidden; 
       background-color: #f0f0f0; 
-      /* 기본 폰트를 Google Sans Code로 설정 */
       font-family: 'Google Sans Code', monospace;
     }
 
     #iframe-wrapper { width: 100%; height: 100%; overflow: hidden; position: relative; }
     #dashboard-frame { border: 0; display: block; transform-origin: top left; will-change: transform; }
 
-    /* 우상단 리프레시 타이머 최적화 */
+    /* 우상단 리프레시 타이머 */
     #refresh-timer {
-      position: fixed;
-      top: 15px;
-      right: 15px;
-      min-width: 140px;
-      padding: 6px 14px;
-      /* 더 투명한 배경 처리 (0.6 -> 0.3) */
-      background-color: rgba(0, 0, 0, 0.3);
-      color: white;
-      border-radius: 20px;
-      font-size: 13px;
-      z-index: 1001;
-      pointer-events: none;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 8px;
-      backdrop-filter: blur(4px);
+      position: fixed; top: 15px; right: 15px; min-width: 140px; padding: 6px 14px;
+      background-color: rgba(0, 0, 0, 0.3); color: white; border-radius: 20px;
+      font-size: 13px; z-index: 1001; pointer-events: none;
+      display: flex; align-items: center; justify-content: flex-start; gap: 8px;
+      backdrop-filter: blur(8px); /* 블러 강도 소폭 상향 */
+      -webkit-backdrop-filter: blur(8px);
     }
 
-    /* 숫자와 텍스트 모두 Google Sans Code 적용 (폭 일정) */
-    #timer-count {
-      font-weight: 600;
-    }
-
+    /* 플로팅 검색 버튼: 푸른색 반투명 블러 적용 */
     .fab-btn {
       position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
-      background-color: #007bff; color: white; border: none; outline: none;
-      border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      /* 푸른색 유지하며 불투명도 조절 */
+      background-color: rgba(0, 123, 255, 0.4); 
+      color: white; border: none; outline: none; border-radius: 50%;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; z-index: 1000; transition: transform 0.2s ease, background-color 0.2s ease;
+      cursor: pointer; z-index: 1000;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      /* 타이머와 동일한 블러 효과 */
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
-    .fab-btn:hover { transform: scale(1.1); background-color: #0056b3; }
+
+    .fab-btn:hover {
+      transform: scale(1.1);
+      background-color: rgba(0, 123, 255, 0.6); /* 호버 시 색상 강조 */
+      box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3);
+    }
+
     .fab-btn i { font-size: 30px; }
   </style>
 </head>
@@ -85,7 +78,6 @@
     const iframe = document.getElementById('dashboard-frame');
     const timerCount = document.getElementById('timer-count');
     
-    // 9분 59초(599초)부터 시작하도록 설정
     let timeLeft = (REFRESH_INTERVAL / 1000) - 1; 
     let ticking = false;
 
@@ -93,7 +85,6 @@
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
       const scaleRatio = windowWidth / SHEET_ACTUAL_WIDTH;
-
       iframe.style.width = SHEET_ACTUAL_WIDTH + 'px';
       iframe.style.height = (windowHeight / scaleRatio) + 'px';
       iframe.style.transform = `scale(${scaleRatio})`;
@@ -103,19 +94,14 @@
       const url = new URL(iframe.src);
       url.searchParams.set('t', new Date().getTime());
       iframe.src = url.toString();
-      // 갱신 후 다시 9:59(599초)로 리셋
       timeLeft = (REFRESH_INTERVAL / 1000) - 1; 
     }
 
     function updateTimer() {
-      if (timeLeft < 0) {
-        refreshIframeOnly();
-      }
-      
+      if (timeLeft < 0) refreshIframeOnly();
       const minutes = Math.floor(timeLeft / 60);
       const seconds = timeLeft % 60;
       timerCount.innerText = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-      
       timeLeft--;
     }
 
@@ -130,13 +116,11 @@
     });
     
     fitIframeToBrowser();
-    // 1초마다 타이머 업데이트
     setInterval(updateTimer, 1000); 
 
     function openSearchPortal() {
       const scriptUrl = "https://script.google.com/a/macros/audioguyrecords.com/s/AKfycbyBVrgIAtTDZJIz6ikyLEgIdFG0LFY5JLtyABnxVPwtwCf0exbJW4uk7TrqJB6Ocp4d/exec";
-      const width = 1000;
-      const height = 800;
+      const width = 1000; const height = 800;
       const left = (window.screen.width / 2) - (width / 2);
       const top = (window.screen.height / 2) - (height / 2);
       window.open(scriptUrl, "MusicSearchPortal", `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
