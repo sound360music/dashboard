@@ -32,10 +32,9 @@
       border: 0;
       display: block;
       transform-origin: top left;
-      will-change: transform; /* GPU 하드웨어 가속 힌트 제공 */
+      will-change: transform;
     }
 
-    /* 플로팅 검색 버튼: button 태그에 맞게 초기화 속성 추가 */
     .fab-btn {
       position: fixed;
       bottom: 30px;
@@ -72,18 +71,16 @@
     <iframe id="dashboard-frame" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vReFgynBhkxg0gE6ECmMIwXeeb4AQJ-DqhDCpnDWYVIvAkeOSx2VBQgCoJQ0uUEJqGmEgok1SlPwRuK/pubhtml?widget=true&headers=false&chrome=false"></iframe>
   </div>
 
-  <!-- div 대신 button 태그 사용 및 접근성 향상 -->
   <button class="fab-btn" onclick="openSearchPortal()" title="통합 검색 열기" aria-label="통합 검색 열기">
     <i class="material-icons">search</i>
   </button>
 
   <script>
     const SHEET_ACTUAL_WIDTH = 2000; 
-    
-    // DOM 요소를 한 번만 찾아 메모리에 캐싱 (불필요한 반복 탐색 방지)
     const iframe = document.getElementById('dashboard-frame');
-    let ticking = false; // 리사이즈 이벤트 쓰로틀링을 위한 플래그
+    let ticking = false;
 
+    // 1. 화면 비율 맞춤 함수
     function fitIframeToBrowser() {
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
@@ -94,7 +91,21 @@
       iframe.style.transform = `scale(${scaleRatio})`;
     }
 
-    // requestAnimationFrame을 활용해 부드럽고 성능 저하 없는 리사이즈 구현
+    // 2. ✨ iframe만 새로고침하는 함수 (10분 주기) ✨
+    function refreshIframeOnly() {
+      try {
+        const url = new URL(iframe.src);
+        // 캐시 방지를 위해 타임스탬프(t) 파라미터를 현재 시간으로 업데이트/추가
+        url.searchParams.set('t', new Date().getTime());
+        iframe.src = url.toString();
+        console.log("대시보드 데이터 갱신 완료: " + new Date().toLocaleTimeString());
+      } catch (e) {
+        // 혹시 모를 에러 발생 시 단순히 src를 재할당
+        iframe.src = iframe.src;
+      }
+    }
+
+    // 리사이즈 최적화
     window.addEventListener('resize', () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
@@ -105,18 +116,18 @@
       }
     });
     
-    // 초기 로드 시 1회 실행
+    // 초기 로드 시 실행
     fitIframeToBrowser();
+
+    // 10분(600,000ms)마다 시트 데이터만 강제 갱신
+    setInterval(refreshIframeOnly, 600000);
 
     function openSearchPortal() {
       const scriptUrl = "https://script.google.com/a/macros/audioguyrecords.com/s/AKfycbyBVrgIAtTDZJIz6ikyLEgIdFG0LFY5JLtyABnxVPwtwCf0exbJW4uk7TrqJB6Ocp4d/exec";
-      
       const width = 1000;
       const height = 800;
-      // 화면 정중앙에 팝업 띄우기 (듀얼 모니터 환경도 고려된 기본 로직)
       const left = (window.screen.width / 2) - (width / 2);
       const top = (window.screen.height / 2) - (height / 2);
-      
       window.open(scriptUrl, "MusicSearchPortal", `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
     }
   </script>
